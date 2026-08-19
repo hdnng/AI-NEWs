@@ -32,7 +32,7 @@
 }
 
 html.dark {
-  /* 🌙 Soft Dark Mode Theme (Deep slate charcoal, peaceful, zero eye strain) */
+  /* 🌙 Soft Dark Mode Theme */
   --bg-base: #0B0E14;              /* Deep charcoal canvas */
   --bg-surface: #121722;           /* Slate-900 card surface */
   --bg-surface2: #182030;          /* Elevated headers & secondary */
@@ -58,8 +58,8 @@ html.dark {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -67,16 +67,16 @@ html.dark {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-line-light);
+  background: var(--border-line);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: var(--border-line-light);
 }
 
 * {
-  scrollbar-color: var(--border-line-light) var(--bg-base);
+  scrollbar-color: var(--border-line) var(--bg-base);
   scrollbar-width: thin;
 }
 
@@ -92,7 +92,7 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  text-rendering: optimizeLegibility;
 }
 
 /* Accessible & clean focus ring */
@@ -106,26 +106,12 @@ select:focus-visible,
   border-radius: 6px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
-}
-
-/* Clean Surface Card with crisp boundary */
+/* Fast Surface Card with GPU containment */
 .surface-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-line);
   box-shadow: var(--card-shadow);
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.surface-card-hover {
-  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+  contain: paint layout;
 }
 
 .surface-card-hover:hover {

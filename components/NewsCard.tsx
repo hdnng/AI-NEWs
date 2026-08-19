@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, memo } from "react";
 import { timeAgoVi } from "@/lib/time";
 import {
   ExternalLinkIcon,
@@ -34,7 +34,7 @@ function estimateReadingTime(summary: string | null): string {
   return `${mins} phút đọc`;
 }
 
-export default function NewsCard({ item, isFresh, viewMode = "grid" }: NewsCardProps) {
+function NewsCard({ item, isFresh, viewMode = "grid" }: NewsCardProps) {
   const [copied, setCopied] = useState(false);
   const badgeStyle = getSourceBadgeStyle(item.source);
   const readTime = estimateReadingTime(item.summary);
@@ -53,7 +53,7 @@ export default function NewsCard({ item, isFresh, viewMode = "grid" }: NewsCardP
 
   if (viewMode === "list") {
     return (
-      <article className="surface-card rounded-2xl p-4 sm:p-5 transition-all hover:border-lineLight hover:bg-surfaceHover shadow-soft">
+      <article className="surface-card rounded-2xl p-4 sm:p-5 hover:border-lineLight hover:bg-surfaceHover shadow-soft">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
             {/* Metadata */}
@@ -80,7 +80,7 @@ export default function NewsCard({ item, isFresh, viewMode = "grid" }: NewsCardP
             </div>
 
             {/* Title */}
-            <h3 className="font-display text-base font-bold leading-snug text-ink hover:text-accentLight transition-colors">
+            <h3 className="font-display text-base font-bold leading-snug text-ink hover:text-accentLight">
               <a
                 href={item.link}
                 target="_blank"
@@ -104,7 +104,7 @@ export default function NewsCard({ item, isFresh, viewMode = "grid" }: NewsCardP
             <button
               onClick={handleCopyLink}
               title="Sao chép liên kết"
-              className="flex h-8 w-8 items-center justify-center rounded-xl border border-line bg-surface2 text-muted transition-all hover:text-ink hover:bg-surfaceHover shadow-sm"
+              className="flex h-8 w-8 items-center justify-center rounded-xl border border-line bg-surface2 text-muted hover:text-ink hover:bg-surfaceHover shadow-sm"
             >
               {copied ? (
                 <CheckIcon className="w-3.5 h-3.5 text-emerald" />
@@ -117,7 +117,7 @@ export default function NewsCard({ item, isFresh, viewMode = "grid" }: NewsCardP
               href={item.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface2 px-3 py-1.5 font-mono text-xs font-semibold text-inkSecondary transition-all hover:bg-accent hover:text-white dark:hover:text-ink dark:hover:border-lineLight shadow-sm"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface2 px-3 py-1.5 font-mono text-xs font-semibold text-inkSecondary hover:bg-accent hover:text-white dark:hover:text-ink dark:hover:border-lineLight shadow-sm"
             >
               <span>Xem bài</span>
               <ExternalLinkIcon className="w-3 h-3" />
@@ -130,7 +130,7 @@ export default function NewsCard({ item, isFresh, viewMode = "grid" }: NewsCardP
 
   // Grid Card Layout (Default)
   return (
-    <article className="surface-card rounded-2xl p-5 sm:p-6 flex flex-col justify-between transition-all hover:border-lineLight hover:bg-surfaceHover shadow-soft">
+    <article className="surface-card rounded-2xl p-5 sm:p-6 flex flex-col justify-between hover:border-lineLight hover:bg-surfaceHover shadow-soft">
       <div>
         {/* Top bar: Source badge + Time */}
         <div className="flex items-center justify-between gap-2 mb-3">
@@ -152,7 +152,7 @@ export default function NewsCard({ item, isFresh, viewMode = "grid" }: NewsCardP
           <button
             onClick={handleCopyLink}
             title={copied ? "Đã sao chép!" : "Sao chép link"}
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-line bg-surface2 text-muted transition-all hover:text-ink hover:bg-surfaceHover shadow-sm"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-line bg-surface2 text-muted hover:text-ink hover:bg-surfaceHover shadow-sm"
           >
             {copied ? (
               <CheckIcon className="w-3.5 h-3.5 text-emerald" />
@@ -163,7 +163,7 @@ export default function NewsCard({ item, isFresh, viewMode = "grid" }: NewsCardP
         </div>
 
         {/* Title */}
-        <h3 className="font-display text-lg font-bold leading-snug text-ink transition-colors hover:text-accentLight">
+        <h3 className="font-display text-lg font-bold leading-snug text-ink hover:text-accentLight">
           <a
             href={item.link}
             target="_blank"
@@ -199,7 +199,7 @@ export default function NewsCard({ item, isFresh, viewMode = "grid" }: NewsCardP
           href={item.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-accentLight transition-colors hover:underline"
+          className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-accentLight hover:underline"
         >
           <span>Đọc bài</span>
           <ExternalLinkIcon className="w-3 h-3" />
@@ -208,3 +208,5 @@ export default function NewsCard({ item, isFresh, viewMode = "grid" }: NewsCardP
     </article>
   );
 }
+
+export default memo(NewsCard);

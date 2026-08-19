@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useDeferredValue } from "react";
 import { formatNumber } from "@/lib/time";
 import {
   SearchIcon,
@@ -46,37 +46,40 @@ type SortField =
 
 type SortDirection = "asc" | "desc";
 
-// Extract clean model organization / family tag if any
+// Fast lookup cache for organization name
+const orgCache = new Map<string, { org: string; isKnownOrg: boolean }>();
+
 function extractOrgInfo(name: string): { org: string; isKnownOrg: boolean } {
+  const cached = orgCache.get(name);
+  if (cached) return cached;
+
   const lower = name.toLowerCase();
+  let result: { org: string; isKnownOrg: boolean };
+
   if (lower.includes("openai") || lower.startsWith("gpt") || lower.startsWith("o1") || lower.startsWith("o3")) {
-    return { org: "OpenAI", isKnownOrg: true };
+    result = { org: "OpenAI", isKnownOrg: true };
+  } else if (lower.includes("anthropic") || lower.startsWith("claude")) {
+    result = { org: "Anthropic", isKnownOrg: true };
+  } else if (lower.includes("google") || lower.startsWith("gemini") || lower.startsWith("gemma")) {
+    result = { org: "Google", isKnownOrg: true };
+  } else if (lower.includes("deepseek")) {
+    result = { org: "DeepSeek", isKnownOrg: true };
+  } else if (lower.includes("meta") || lower.startsWith("llama")) {
+    result = { org: "Meta", isKnownOrg: true };
+  } else if (lower.includes("qwen") || lower.includes("alibaba")) {
+    result = { org: "Alibaba", isKnownOrg: true };
+  } else if (lower.includes("mistral") || lower.includes("mixtral") || lower.includes("codestral")) {
+    result = { org: "Mistral", isKnownOrg: true };
+  } else if (lower.includes("microsoft") || lower.startsWith("phi")) {
+    result = { org: "Microsoft", isKnownOrg: true };
+  } else if (name.includes("/")) {
+    result = { org: name.split("/")[0], isKnownOrg: false };
+  } else {
+    result = { org: "Open", isKnownOrg: false };
   }
-  if (lower.includes("anthropic") || lower.startsWith("claude")) {
-    return { org: "Anthropic", isKnownOrg: true };
-  }
-  if (lower.includes("google") || lower.startsWith("gemini") || lower.startsWith("gemma")) {
-    return { org: "Google", isKnownOrg: true };
-  }
-  if (lower.includes("deepseek")) {
-    return { org: "DeepSeek", isKnownOrg: true };
-  }
-  if (lower.includes("meta") || lower.startsWith("llama")) {
-    return { org: "Meta", isKnownOrg: true };
-  }
-  if (lower.includes("qwen") || lower.includes("alibaba")) {
-    return { org: "Alibaba", isKnownOrg: true };
-  }
-  if (lower.includes("mistral") || lower.includes("mixtral") || lower.includes("codestral")) {
-    return { org: "Mistral", isKnownOrg: true };
-  }
-  if (lower.includes("microsoft") || lower.startsWith("phi")) {
-    return { org: "Microsoft", isKnownOrg: true };
-  }
-  if (name.includes("/")) {
-    return { org: name.split("/")[0], isKnownOrg: false };
-  }
-  return { org: "Open", isKnownOrg: false };
+
+  orgCache.set(name, result);
+  return result;
 }
 
 export default function LeaderboardTabs({
@@ -84,6 +87,7 @@ export default function LeaderboardTabs({
   lastUpdated,
 }: LeaderboardTabsProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearch = useDeferredValue(searchQuery); // React 18 Non-blocking Search
   const [selectedOrg, setSelectedOrg] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>("reasoningScore");
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
@@ -108,17 +112,26 @@ export default function LeaderboardTabs({
     }
   };
 
-  // Filtered & Sorted models
+  // Max score for reasoning to render comparative bar
+  const maxReasoning = useMemo(() => {
+    let max = 100;
+    for (const m of models) {
+      if (m.reasoningScore != null && m.reasoningScore > max) {
+        max = m.reasoningScore;
+      }
+    }
+    return max;
+  }, [models]);
+
+  // Filtered & Sorted models (computed concurrently with deferred search)
   const processedModels = useMemo(() => {
+    const q = deferredSearch.toLowerCase().trim();
+
     // 1. Search & Org filter
     let list = models.filter((m) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        m.modelName.toLowerCase().includes(searchQuery.toLowerCase().trim());
-
+      const matchesSearch = !q || m.modelName.toLowerCase().includes(q);
       const { org } = extractOrgInfo(m.modelName);
       const matchesOrg = selectedOrg === "all" || org === selectedOrg;
-
       return matchesSearch && matchesOrg;
     });
 
@@ -147,15 +160,7 @@ export default function LeaderboardTabs({
     });
 
     return list;
-  }, [models, searchQuery, selectedOrg, sortField, sortDir]);
-
-  // Max score for reasoning to render comparative bar
-  const maxReasoning = useMemo(() => {
-    const valid = models
-      .map((m) => m.reasoningScore)
-      .filter((s): s is number => s != null);
-    return Math.max(...valid, 100);
-  }, [models]);
+  }, [models, deferredSearch, selectedOrg, sortField, sortDir]);
 
   const renderSortIcon = (field: SortField) => {
     if (sortField !== field) {
@@ -173,7 +178,7 @@ export default function LeaderboardTabs({
       {/* ── Top Filters & Search ────────────────────────────────────────── */}
       <div className="surface-card rounded-2xl p-4 sm:p-5">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Search Box */}
+          {/* Search Box with instant typing */}
           <div className="relative flex-1">
             <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted w-4 h-4 pointer-events-none" />
             <input
@@ -181,7 +186,7 @@ export default function LeaderboardTabs({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm kiếm model (vd: GPT-4o, Claude 3.5, DeepSeek-R1, Llama 3...)"
-              className="w-full rounded-xl border border-line bg-surface py-2.5 pl-10 pr-10 font-body text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none transition-colors shadow-sm"
+              className="w-full rounded-xl border border-line bg-surface py-2.5 pl-10 pr-10 font-body text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none shadow-sm"
             />
             {searchQuery && (
               <button
@@ -219,7 +224,7 @@ export default function LeaderboardTabs({
           <span className="font-medium mr-1 text-inkSecondary">Sắp xếp theo:</span>
           <button
             onClick={() => handleSort("reasoningScore")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all shadow-sm ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 shadow-sm ${
               sortField === "reasoningScore"
                 ? "bg-accentDim text-accentText font-bold border border-accent/40"
                 : "bg-surface2 text-muted hover:text-ink hover:bg-surfaceHover border border-line"
@@ -231,7 +236,7 @@ export default function LeaderboardTabs({
 
           <button
             onClick={() => handleSort("mathScore")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all shadow-sm ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 shadow-sm ${
               sortField === "mathScore"
                 ? "bg-accentDim text-accentText font-bold border border-accent/40"
                 : "bg-surface2 text-muted hover:text-ink hover:bg-surfaceHover border border-line"
@@ -243,7 +248,7 @@ export default function LeaderboardTabs({
 
           <button
             onClick={() => handleSort("codingScore")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all shadow-sm ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 shadow-sm ${
               sortField === "codingScore"
                 ? "bg-accentDim text-accentText font-bold border border-accent/40"
                 : "bg-surface2 text-muted hover:text-ink hover:bg-surfaceHover border border-line"
@@ -255,7 +260,7 @@ export default function LeaderboardTabs({
 
           <button
             onClick={() => handleSort("arenaScore")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all shadow-sm ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 shadow-sm ${
               sortField === "arenaScore"
                 ? "bg-accentDim text-accentText font-bold border border-accent/40"
                 : "bg-surface2 text-muted hover:text-ink hover:bg-surfaceHover border border-line"
@@ -267,7 +272,7 @@ export default function LeaderboardTabs({
 
           <button
             onClick={() => handleSort("popularityDownloads")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all shadow-sm ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 shadow-sm ${
               sortField === "popularityDownloads"
                 ? "bg-accentDim text-accentText font-bold border border-accent/40"
                 : "bg-surface2 text-muted hover:text-ink hover:bg-surfaceHover border border-line"
@@ -288,7 +293,7 @@ export default function LeaderboardTabs({
                 <th className="py-3.5 pl-4 pr-2 w-14 text-center">#</th>
                 <th
                   onClick={() => handleSort("modelName")}
-                  className="py-3.5 px-4 cursor-pointer hover:text-accentLight transition-colors min-w-[220px]"
+                  className="py-3.5 px-4 cursor-pointer hover:text-accentLight min-w-[220px]"
                 >
                   <div className="flex items-center gap-1.5 group">
                     <span>Mô hình AI</span>
@@ -297,7 +302,7 @@ export default function LeaderboardTabs({
                 </th>
                 <th
                   onClick={() => handleSort("reasoningScore")}
-                  className="py-3.5 px-3 cursor-pointer hover:text-accentLight transition-colors min-w-[150px]"
+                  className="py-3.5 px-3 cursor-pointer hover:text-accentLight min-w-[150px]"
                 >
                   <div className="flex items-center gap-1.5 group">
                     <BrainIcon className="w-3.5 h-3.5 text-accentLight" />
@@ -307,7 +312,7 @@ export default function LeaderboardTabs({
                 </th>
                 <th
                   onClick={() => handleSort("mathScore")}
-                  className="py-3.5 px-3 cursor-pointer hover:text-accentLight transition-colors min-w-[120px]"
+                  className="py-3.5 px-3 cursor-pointer hover:text-accentLight min-w-[120px]"
                 >
                   <div className="flex items-center gap-1.5 group">
                     <CalculatorIcon className="w-3.5 h-3.5 text-accentLight" />
@@ -317,7 +322,7 @@ export default function LeaderboardTabs({
                 </th>
                 <th
                   onClick={() => handleSort("codingScore")}
-                  className="py-3.5 px-3 cursor-pointer hover:text-accentLight transition-colors min-w-[120px]"
+                  className="py-3.5 px-3 cursor-pointer hover:text-accentLight min-w-[120px]"
                 >
                   <div className="flex items-center gap-1.5 group">
                     <CodeIcon className="w-3.5 h-3.5 text-accentLight" />
@@ -327,7 +332,7 @@ export default function LeaderboardTabs({
                 </th>
                 <th
                   onClick={() => handleSort("arenaScore")}
-                  className="py-3.5 px-3 cursor-pointer hover:text-accentLight transition-colors min-w-[120px]"
+                  className="py-3.5 px-3 cursor-pointer hover:text-accentLight min-w-[120px]"
                 >
                   <div className="flex items-center gap-1.5 group">
                     <SwordsIcon className="w-3.5 h-3.5 text-accentLight" />
@@ -337,7 +342,7 @@ export default function LeaderboardTabs({
                 </th>
                 <th
                   onClick={() => handleSort("popularityDownloads")}
-                  className="py-3.5 pl-3 pr-4 cursor-pointer hover:text-accentLight transition-colors min-w-[120px] text-right"
+                  className="py-3.5 pl-3 pr-4 cursor-pointer hover:text-accentLight min-w-[120px] text-right"
                 >
                   <div className="flex items-center justify-end gap-1.5 group">
                     <DownloadIcon className="w-3.5 h-3.5 text-accentLight" />
@@ -363,7 +368,7 @@ export default function LeaderboardTabs({
                   return (
                     <tr
                       key={m.id}
-                      className="group transition-colors bg-surface hover:bg-surfaceHover odd:bg-surface even:bg-rowAlt"
+                      className="group bg-surface hover:bg-surfaceHover odd:bg-surface even:bg-rowAlt"
                     >
                       {/* Rank Number */}
                       <td className="py-3.5 pl-4 pr-2 text-center font-mono text-xs">
@@ -387,7 +392,7 @@ export default function LeaderboardTabs({
                       {/* Model Name & Org */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2">
-                          <span className="font-display font-semibold text-ink group-hover:text-accentLight transition-colors">
+                          <span className="font-display font-semibold text-ink group-hover:text-accentLight">
                             {m.modelName}
                           </span>
                           <span className="inline-block rounded px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted bg-surface3 border border-line">
@@ -405,7 +410,7 @@ export default function LeaderboardTabs({
                             </span>
                             <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface3">
                               <div
-                                className="h-full rounded-full bg-accent transition-all duration-300"
+                                className="h-full rounded-full bg-accent"
                                 style={{ width: `${reasoningPct}%` }}
                               />
                             </div>

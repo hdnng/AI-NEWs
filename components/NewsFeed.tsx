@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useDeferredValue } from "react";
 import NewsCard, { ArticleData } from "./NewsCard";
 import {
   SearchIcon,
@@ -22,7 +22,7 @@ interface NewsFeedProps {
 }
 
 const FRESH_MS = 10 * 60_000; // 10 minutes
-const POLL_MS = 60_000; // 60s auto poll
+const POLL_MS = 180_000; // 3 minutes smart poll
 
 export default function NewsFeed({
   initialArticles,
@@ -33,12 +33,12 @@ export default function NewsFeed({
   const [totalCount, setTotalCount] = useState(initialTotalCount);
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearch = useDeferredValue(searchQuery); // React 18 Non-blocking Search
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
-  const [, forceTick] = useState(0);
 
   const pageSize = 20;
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -46,12 +46,6 @@ export default function NewsFeed({
   // Set initial client timestamp on mount to prevent SSR hydration mismatch
   useEffect(() => {
     setFetchedAt(new Date().toISOString());
-  }, []);
-
-  // Tick every 30s to update "x mins ago"
-  useEffect(() => {
-    const t = setInterval(() => forceTick((n) => n + 1), 30_000);
-    return () => clearInterval(t);
   }, []);
 
   const fetchArticles = useCallback(
@@ -81,10 +75,12 @@ export default function NewsFeed({
     []
   );
 
-  // Auto poll
+  // Smart background polling (only when page is visible)
   useEffect(() => {
     const id = setInterval(() => {
-      fetchArticles(selectedSource, page);
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        fetchArticles(selectedSource, page);
+      }
     }, POLL_MS);
     return () => clearInterval(id);
   }, [selectedSource, page, fetchArticles]);
@@ -101,20 +97,20 @@ export default function NewsFeed({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Client-side search filtering
+  // Client-side search filtering using deferred value (60fps typing)
   const filteredArticles = useMemo(() => {
-    if (!searchQuery.trim()) return articles;
-    const q = searchQuery.toLowerCase().trim();
+    const q = deferredSearch.toLowerCase().trim();
+    if (!q) return articles;
     return articles.filter(
       (a) =>
         a.title.toLowerCase().includes(q) ||
         (a.summary && a.summary.toLowerCase().includes(q)) ||
         a.source.toLowerCase().includes(q)
     );
-  }, [articles, searchQuery]);
+  }, [articles, deferredSearch]);
 
   // Featured top story is top 1 article on page 1 when no search active
-  const hasFeatured = page === 1 && !searchQuery.trim() && !selectedSource && filteredArticles.length > 0;
+  const hasFeatured = page === 1 && !deferredSearch.trim() && !selectedSource && filteredArticles.length > 0;
   const featuredArticle = hasFeatured ? filteredArticles[0] : null;
   const feedArticles = hasFeatured ? filteredArticles.slice(1) : filteredArticles;
 
@@ -131,7 +127,7 @@ export default function NewsFeed({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm kiếm bài viết theo từ khoá, tiêu đề..."
-              className="w-full rounded-xl border border-line bg-surface py-2.5 pl-10 pr-10 font-body text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none transition-colors shadow-sm"
+              className="w-full rounded-xl border border-line bg-surface py-2.5 pl-10 pr-10 font-body text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none shadow-sm"
             />
             {searchQuery && (
               <button
@@ -151,7 +147,7 @@ export default function NewsFeed({
               <button
                 onClick={() => setViewMode("grid")}
                 title="Dạng lưới thẻ"
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs transition-all ${
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs ${
                   viewMode === "grid"
                     ? "bg-surface text-ink font-bold shadow-sm border border-line"
                     : "text-muted hover:text-ink"
@@ -163,7 +159,7 @@ export default function NewsFeed({
               <button
                 onClick={() => setViewMode("list")}
                 title="Dạng danh sách gọn"
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs transition-all ${
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs ${
                   viewMode === "list"
                     ? "bg-surface text-ink font-bold shadow-sm border border-line"
                     : "text-muted hover:text-ink"
@@ -179,7 +175,7 @@ export default function NewsFeed({
               onClick={() => fetchArticles(selectedSource, page, true)}
               disabled={loading || refreshing}
               title="Làm mới dữ liệu ngay"
-              className="flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 font-mono text-xs font-medium text-inkSecondary hover:text-ink hover:bg-surfaceHover transition-all shadow-sm disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 font-mono text-xs font-medium text-inkSecondary hover:text-ink hover:bg-surfaceHover shadow-sm disabled:opacity-50"
             >
               <RefreshCwIcon
                 className={`w-3.5 h-3.5 ${refreshing || loading ? "animate-spin text-accentLight" : ""}`}
@@ -196,7 +192,7 @@ export default function NewsFeed({
           </span>
           <button
             onClick={() => handleSourceChange(null)}
-            className={`rounded-lg px-3 py-1.5 font-mono text-xs transition-all shadow-sm ${
+            className={`rounded-lg px-3 py-1.5 font-mono text-xs shadow-sm ${
               selectedSource === null
                 ? "bg-accentDim text-accentText font-bold border border-accent/40"
                 : "bg-surface2 text-muted hover:text-ink hover:bg-surfaceHover border border-line"
@@ -211,7 +207,7 @@ export default function NewsFeed({
               <button
                 key={src}
                 onClick={() => handleSourceChange(src)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs transition-all border shadow-sm ${
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs border shadow-sm ${
                   active
                     ? "bg-accentDim text-accentText font-bold border-accent/40"
                     : "bg-surface2 text-muted hover:text-ink hover:bg-surfaceHover border-line"
@@ -272,7 +268,7 @@ export default function NewsFeed({
               </span>
             </div>
 
-            <h2 className="font-display text-xl sm:text-2xl font-bold leading-snug text-ink hover:text-accentLight transition-colors">
+            <h2 className="font-display text-xl sm:text-2xl font-bold leading-snug text-ink hover:text-accentLight">
               <a
                 href={featuredArticle.link}
                 target="_blank"
@@ -293,7 +289,7 @@ export default function NewsFeed({
                 href={featuredArticle.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface2 px-4 py-2 font-mono text-xs font-semibold text-ink transition-all hover:bg-accent hover:text-white dark:hover:border-accent dark:hover:text-accentLight shadow-sm"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface2 px-4 py-2 font-mono text-xs font-semibold text-ink hover:bg-accent hover:text-white dark:hover:border-accent dark:hover:text-accentLight shadow-sm"
               >
                 <span>Đọc toàn bộ bài viết</span>
                 <ExternalLinkIcon className="w-3.5 h-3.5" />
@@ -338,7 +334,7 @@ export default function NewsFeed({
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="mt-4 rounded-lg border border-line bg-surface2 px-3 py-1 font-mono text-xs text-ink hover:bg-surfaceHover transition-colors"
+              className="mt-4 rounded-lg border border-line bg-surface2 px-3 py-1 font-mono text-xs text-ink hover:bg-surfaceHover"
             >
               Xoá bộ lọc tìm kiếm
             </button>
@@ -352,7 +348,7 @@ export default function NewsFeed({
           <button
             onClick={() => handlePageChange(page - 1)}
             disabled={page <= 1}
-            className="rounded-xl border border-line bg-surface px-4 py-2 font-mono text-xs font-semibold text-muted transition-all hover:text-ink hover:border-lineLight disabled:cursor-not-allowed disabled:opacity-40 shadow-sm"
+            className="rounded-xl border border-line bg-surface px-4 py-2 font-mono text-xs font-semibold text-muted hover:text-ink hover:border-lineLight disabled:cursor-not-allowed disabled:opacity-40 shadow-sm"
           >
             ← Trang trước
           </button>
@@ -364,7 +360,7 @@ export default function NewsFeed({
           <button
             onClick={() => handlePageChange(page + 1)}
             disabled={page >= totalPages}
-            className="rounded-xl border border-line bg-surface px-4 py-2 font-mono text-xs font-semibold text-muted transition-all hover:text-ink hover:border-lineLight disabled:cursor-not-allowed disabled:opacity-40 shadow-sm"
+            className="rounded-xl border border-line bg-surface px-4 py-2 font-mono text-xs font-semibold text-muted hover:text-ink hover:border-lineLight disabled:cursor-not-allowed disabled:opacity-40 shadow-sm"
           >
             Trang sau →
           </button>
