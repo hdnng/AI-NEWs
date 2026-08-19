@@ -19,7 +19,7 @@ interface NewsFeedProps {
   sources: string[];
 }
 
-const FRESH_MS = 15 * 60_000; // 15 phút
+const FRESH_MS = 10 * 60_000; // 10 phút (khớp với chu kỳ sync)
 const POLL_MS = 60_000; // tự làm mới mỗi 60s
 
 export default function NewsFeed({

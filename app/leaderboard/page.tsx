@@ -38,7 +38,7 @@ export default async function LeaderboardPage() {
           Ai đang dẫn đầu, theo từng tiêu chí
         </h1>
         <p className="mt-3 max-w-xl text-muted">
-          Dữ liệu được tổng hợp từ nhiều nguồn khác nhau (Open LLM Leaderboard,
+          Dữ liệu được tự động đồng bộ mỗi 6 giờ từ nhiều nguồn khác nhau (Open LLM Leaderboard,
           Arena Hard, BigCodeBench, Hugging Face Hub). Hover vào tab để xem
           nguồn cụ thể. Model đóng (GPT-4o, Claude…) không có trên HF Hub nên
           popularity hiển thị &quot;N/A&quot;.

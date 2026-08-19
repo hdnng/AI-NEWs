@@ -45,7 +45,7 @@ export default async function NewsPage() {
           Bắt tín hiệu AI ngay khi vừa phát ra
         </h1>
         <p className="mt-3 max-w-xl text-muted">
-          Gom tin từ {sources.length} nguồn uy tín, tự động đồng bộ mỗi giờ
+          Gom tin từ {sources.length} nguồn uy tín, tự động đồng bộ mỗi 10 phút
           — dữ liệu luôn sẵn trong database, không fetch ngoài khi bạn load trang.
         </p>
       </section>
