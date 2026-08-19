@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+* {
+  scrollbar-color: #2C3646 transparent;
+}
+
+html {
+  background-color: #0B0F14;
+}
+
+body {
+  background-color: #0B0F14;
+  color: #E8EDF2;
+  font-family: var(--font-body);
+}
+
+/* visible keyboard focus */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #5EEAD4;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, #182231 1px, transparent 1px),
+    linear-gradient(to bottom, #182231 1px, transparent 1px);
+  background-size: 40px 40px;
+}

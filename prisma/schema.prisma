@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Model {
+  id                  Int      @id @default(autoincrement())
+  modelName           String   @unique @map("model_name")
+  source              String?
+  reasoningScore      Float?   @map("reasoning_score")
+  mathScore           Float?   @map("math_score")
+  codingScore         Float?   @map("coding_score")
+  arenaScore          Float?   @map("arena_score")
+  popularityDownloads BigInt?  @map("popularity_downloads")
+  popularityLikes     Int?     @map("popularity_likes")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("models")
+}
+
+model Article {
+  id          Int      @id @default(autoincrement())
+  title       String
+  link        String   @unique
+  source      String
+  publishedAt DateTime @map("published_at")
+  summary     String?
+  category    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("articles")
+}
