@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import NewsFeed from "@/components/NewsFeed";
 
-export const revalidate = 120; // ISR: 2 phút
+export const revalidate = 120; // ISR: 2 minutes
 
 export default async function NewsPage() {
   let serializedArticles: any[] = [];
@@ -25,7 +25,7 @@ export default async function NewsPage() {
     totalCount = count;
     sources = sourcesRaw.map((s) => s.source);
 
-    // Serialize dates cho client component
+    // Serialize dates for client component
     serializedArticles = articles.map((a) => ({
       ...a,
       publishedAt: a.publishedAt.toISOString(),
@@ -36,21 +36,31 @@ export default async function NewsPage() {
   }
 
   return (
-    <div>
-      <section className="border-b border-line py-10">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-pulse">
-          Tổng hợp tin tức AI
-        </p>
-        <h1 className="mt-2 max-w-2xl font-display text-4xl font-bold leading-tight text-ink sm:text-5xl">
-          Bắt tín hiệu AI ngay khi vừa phát ra
-        </h1>
-        <p className="mt-3 max-w-xl text-muted">
-          Gom tin từ {sources.length} nguồn uy tín, tự động đồng bộ mỗi 10 phút
-          — dữ liệu luôn sẵn trong database, không fetch ngoài khi bạn load trang.
-        </p>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <section className="border-b border-line pb-6 pt-2">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <span className="rounded-md bg-accentDim px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-accentText border border-accent/20 shadow-sm">
+              Live Feed
+            </span>
+            <span className="font-mono text-xs text-muted font-medium">
+              {sources.length > 0 ? `${sources.length} Nguồn cập nhật tự động` : "5 Nguồn cấp uy tín"}
+            </span>
+          </div>
+
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-ink">
+            Tin tức Trí tuệ Nhân tạo Toàn cầu
+          </h1>
+
+          <p className="max-w-2xl text-sm text-muted leading-relaxed font-body">
+            Tổng hợp thông tin mới nhất từ OpenAI, Google AI Blog, TechCrunch, VentureBeat và arXiv CS.AI.
+          </p>
+        </div>
       </section>
 
-      <section className="pt-2">
+      {/* Main Feed Section */}
+      <section>
         <NewsFeed
           initialArticles={serializedArticles}
           initialTotalCount={totalCount}

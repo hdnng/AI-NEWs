@@ -3,47 +3,124 @@
 @tailwind utilities;
 
 :root {
-  --font-display: "Space Grotesk", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+
+  /* ☀️ Light Mode Theme */
+  --bg-base: #F1F5F9;              /* Slate-100: Soft canvas background */
+  --bg-surface: #FFFFFF;           /* Pure white card surface */
+  --bg-surface2: #F8FAFC;          /* Slate-50: table header, secondary buttons */
+  --bg-surface3: #E2E8F0;          /* Slate-200: tracks, badges, pill backgrounds */
+  --bg-surface-hover: #F1F5F9;    /* Hover background */
+  --bg-row-alt: #F8FAFC;          /* Table zebra row */
+  --border-line: #CBD5E1;          /* Slate-300: crisp solid border */
+  --border-line-light: #94A3B8;    /* Slate-400: active border */
+  --text-ink: #0F172A;             /* Slate-900: deep sharp primary text */
+  --text-ink-secondary: #334155;   /* Slate-700: sharp body text */
+  --text-muted: #475569;           /* Slate-600: clear readable text */
+  --text-muted-dark: #64748B;      /* Slate-500: timestamps, subtags */
+  --accent: #2563EB;               /* Blue-600 */
+  --accent-light: #3B82F6;         /* Blue-500 */
+  --accent-dim: #EFF6FF;           /* Blue-50 */
+  --accent-text: #1D4ED8;          /* Blue-700 */
+  --emerald: #059669;
+  --emerald-dim: #ECFDF5;
+  --amber: #D97706;
+  --amber-dim: #FFFBEB;
+  --card-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+}
+
+html.dark {
+  /* 🌙 Soft Dark Mode Theme */
+  --bg-base: #0B0E14;              /* Deep charcoal canvas */
+  --bg-surface: #121722;           /* Slate-900 card surface */
+  --bg-surface2: #182030;          /* Elevated headers & secondary */
+  --bg-surface3: #222D42;          /* Bar tracks & badges */
+  --bg-surface-hover: #1E283C;    /* Dark hover */
+  --bg-row-alt: #151C2B;          /* Dark table zebra row */
+  --border-line: #222E42;          /* Clean dark border */
+  --border-line-light: #2E3E59;    /* Elevated hover border */
+  --text-ink: #F8FAFC;             /* Slate-50 bright text */
+  --text-ink-secondary: #CBD5E1;   /* Slate-300 */
+  --text-muted: #94A3B8;           /* Slate-400 */
+  --text-muted-dark: #64748B;      /* Slate-500 */
+  --accent: #3B82F6;               /* Blue-500 */
+  --accent-light: #60A5FA;         /* Blue-400 */
+  --accent-dim: rgba(59, 130, 246, 0.15);
+  --accent-text: #93C5FD;          /* Blue-300 */
+  --emerald: #10B981;
+  --emerald-dim: rgba(16, 185, 129, 0.15);
+  --amber: #F59E0B;
+  --amber-dim: rgba(245, 158, 11, 0.15);
+  --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-line);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-line-light);
 }
 
 * {
-  scrollbar-color: #2C3646 transparent;
+  scrollbar-color: var(--border-line) var(--bg-base);
+  scrollbar-width: thin;
 }
 
 html {
-  background-color: #0B0F14;
+  background-color: var(--bg-base);
+  color-scheme: light dark;
 }
 
 body {
-  background-color: #0B0F14;
-  color: #E8EDF2;
+  background-color: var(--bg-base);
+  color: var(--text-ink);
   font-family: var(--font-body);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* visible keyboard focus */
+/* Accessible & clean focus ring */
 a:focus-visible,
 button:focus-visible,
+input:focus-visible,
+select:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid #5EEAD4;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
+/* Fast Surface Card with GPU containment */
+.surface-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-line);
+  box-shadow: var(--card-shadow);
+  contain: paint layout;
 }
 
-.bg-grid {
-  background-image:
-    linear-gradient(to right, #182231 1px, transparent 1px),
-    linear-gradient(to bottom, #182231 1px, transparent 1px);
-  background-size: 40px 40px;
+.surface-card-hover:hover {
+  background-color: var(--bg-surface-hover);
+  border-color: var(--border-line-light);
+}
+
+/* Table scrollbar helper */
+.custom-table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
