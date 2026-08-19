@@ -1,3 +1,4 @@
+import type { Viewport } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
@@ -25,6 +26,16 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F1F5F9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B0E14" },
+  ],
+};
+
 export const metadata = {
   title: "AI Pulse — Cập nhật Tin tức & Bảng xếp hạng AI thời gian thực",
   description:
@@ -51,9 +62,11 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-base text-ink flex flex-col justify-between selection:bg-accent/25 selection:text-accentLight">
         <ThemeProvider>
-          <div>
+          <div className="flex-1">
             <Nav />
-            <main className="mx-auto max-w-6xl px-4 sm:px-6 pt-6 pb-20">{children}</main>
+            <main className="mx-auto max-w-6xl px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 sm:pb-20 safe-pb">
+              {children}
+            </main>
           </div>
           <Footer />
         </ThemeProvider>

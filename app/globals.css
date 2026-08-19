@@ -78,11 +78,13 @@ html.dark {
 * {
   scrollbar-color: var(--border-line) var(--bg-base);
   scrollbar-width: thin;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
   background-color: var(--bg-base);
   color-scheme: light dark;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -90,9 +92,11 @@ body {
   color: var(--text-ink);
   font-family: var(--font-body);
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 /* Accessible & clean focus ring */
@@ -111,7 +115,6 @@ select:focus-visible,
   background-color: var(--bg-surface);
   border: 1px solid var(--border-line);
   box-shadow: var(--card-shadow);
-  contain: paint layout;
 }
 
 .surface-card-hover:hover {
@@ -119,8 +122,33 @@ select:focus-visible,
   border-color: var(--border-line-light);
 }
 
-/* Table scrollbar helper */
+/* Hide scrollbar utility for clean horizontal swipeable chip bars */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Table scrollbar helper with momentum scroll */
 .custom-table-container {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+/* Sticky column shadow separator when scrolling */
+.sticky-col-shadow {
+  box-shadow: 4px 0 8px -2px rgba(0, 0, 0, 0.08);
+}
+html.dark .sticky-col-shadow {
+  box-shadow: 4px 0 10px -2px rgba(0, 0, 0, 0.35);
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+  .safe-pb {
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
 }

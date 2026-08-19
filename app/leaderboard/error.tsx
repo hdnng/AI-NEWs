@@ -10,10 +10,10 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-3xl border border-rose/20 bg-surface/50 p-8 text-center backdrop-blur shadow-card">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose/10 border border-rose/30 text-rose">
+    <div className="flex min-h-[40vh] sm:min-h-[50vh] flex-col items-center justify-center rounded-2xl sm:rounded-3xl border border-rose/20 bg-surface/50 p-5 sm:p-8 text-center backdrop-blur shadow-card">
+      <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-xl sm:rounded-2xl bg-rose/10 border border-rose/30 text-rose">
         <svg
-          className="h-8 w-8"
+          className="h-6 w-6 sm:h-8 sm:w-8"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -27,17 +27,17 @@ export default function Error({
         </svg>
       </div>
 
-      <h2 className="mt-5 font-display text-2xl font-bold text-ink">
+      <h2 className="mt-4 sm:mt-5 font-display text-xl sm:text-2xl font-bold text-ink">
         Không thể tải bảng xếp hạng AI
       </h2>
 
-      <p className="mt-2 max-w-md text-sm text-muted">
+      <p className="mt-2 max-w-md text-xs sm:text-sm text-muted">
         {error.message || "Đã xảy ra sự cố khi tải dữ liệu bảng xếp hạng. Vui lòng thử tải lại."}
       </p>
 
       <button
         onClick={reset}
-        className="mt-6 flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber to-rose px-6 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-base transition-all hover:opacity-90 hover:shadow-glow-amber"
+        className="mt-5 sm:mt-6 flex items-center gap-2 rounded-xl bg-accent px-5 sm:px-6 py-2 sm:py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-white transition-all hover:opacity-90 shadow-sm"
       >
         <RefreshCwIcon className="w-3.5 h-3.5" />
         <span>Thử lại</span>
