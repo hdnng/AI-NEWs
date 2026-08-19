@@ -120,8 +120,8 @@ export default function NewsFeed({
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-pulseDot rounded-full bg-pulse" />
         </span>
-        Cập nhật lúc {new Date(fetchedAt).toLocaleTimeString("vi-VN")} · tự
-        động làm mới mỗi phút
+        Cập nhật lúc {new Date(fetchedAt).toLocaleTimeString("vi-VN")} · Tự động
+        làm mới trực tiếp
         {loading && (
           <span className="ml-2 text-pulse">đang tải...</span>
         )}
