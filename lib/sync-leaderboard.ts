@@ -59,7 +59,7 @@ async function fetchOpenLLM(map: Map<string, ModelDraft>, errors: string[]) {
   try {
     while (hasMore) {
       const url = `${BASE}&offset=${offset}`;
-      const res = await fetchWithTimeout(url);
+      const res = await fetchWithTimeout(url, 10_000);
       if (!res.ok) throw new Error(`HTTP ${res.status} from Open LLM Leaderboard`);
       const data = await res.json();
       const rows: Array<{ row: Record<string, unknown> }> = data.rows ?? [];
@@ -91,8 +91,8 @@ async function fetchOpenLLM(map: Map<string, ModelDraft>, errors: string[]) {
       }
 
       offset += rows.length;
-      // Giới hạn tối đa 1000 model để tránh loop vô hạn
-      if (offset >= 1000) hasMore = false;
+      // Giới hạn 200 model hàng đầu để tối ưu tốc độ
+      if (offset >= 200) hasMore = false;
     }
     console.log(`[sync-leaderboard] Open LLM: loaded ${offset} rows`);
   } catch (err) {
@@ -108,7 +108,7 @@ async function fetchArenaHard(map: Map<string, ModelDraft>, errors: string[]) {
     "https://huggingface.co/spaces/lmarena-ai/arena-leaderboard/raw/main/arena_hard_auto_leaderboard_v0.1.csv";
 
   try {
-    const res = await fetchWithTimeout(URL);
+    const res = await fetchWithTimeout(URL, 10_000);
     if (!res.ok) throw new Error(`HTTP ${res.status} from Arena Hard CSV`);
     const csvText = await res.text();
 
@@ -145,7 +145,7 @@ async function fetchBigCodeBench(map: Map<string, ModelDraft>, errors: string[])
     "https://datasets-server.huggingface.co/rows?dataset=bigcode/bigcodebench-results&config=default&split=train&length=100";
 
   try {
-    const res = await fetchWithTimeout(URL);
+    const res = await fetchWithTimeout(URL, 10_000);
     if (!res.ok) throw new Error(`HTTP ${res.status} from BigCodeBench`);
     const data = await res.json();
     const rows: Array<{ row: Record<string, unknown> }> = data.rows ?? [];
@@ -179,16 +179,15 @@ async function fetchBigCodeBench(map: Map<string, ModelDraft>, errors: string[])
 async function fetchPopularity(map: Map<string, ModelDraft>, errors: string[]) {
   // Chỉ fetch cho model có dạng "org/model" (HF Hub ID)
   const candidates = Array.from(map.entries()).filter(([, m]) => m.modelName.includes("/"));
-  const batch = candidates.slice(0, 30); // Giới hạn 30 request tránh rate limit
+  const batch = candidates.slice(0, 20); // 20 models nhanh
 
-  let fetched = 0;
-  for (const [key, model] of batch) {
+  const promises = batch.map(async ([key, model]) => {
     try {
       const res = await fetchWithTimeout(
         `https://huggingface.co/api/models/${encodeURIComponent(model.modelName)}`,
-        8_000
+        5_000
       );
-      if (!res.ok) continue;
+      if (!res.ok) return;
       const data = await res.json();
 
       map.set(key, {
@@ -196,12 +195,13 @@ async function fetchPopularity(map: Map<string, ModelDraft>, errors: string[]) {
         popularityDownloads: data.downloads != null ? BigInt(data.downloads) : null,
         popularityLikes: data.likes != null ? Number(data.likes) : null,
       });
-      fetched++;
     } catch {
-      // Bỏ qua lỗi cho từng model riêng lẻ, tiếp tục model khác
+      // Bỏ qua lỗi từng model
     }
-  }
-  console.log(`[sync-leaderboard] Popularity: fetched ${fetched}/${batch.length} models`);
+  });
+
+  await Promise.allSettled(promises);
+  console.log(`[sync-leaderboard] Popularity: processed batch of ${batch.length}`);
 }
 
 // ── Main sync function ─────────────────────────────────────────────────
@@ -209,47 +209,54 @@ export async function syncLeaderboard(): Promise<SyncResult> {
   const errors: string[] = [];
   const map = new Map<string, ModelDraft>();
 
-  // Fetch song song 3 nguồn chính (popularity phụ thuộc nguồn 1 nên chạy sau)
+  // Fetch song song 3 nguồn chính
   await Promise.allSettled([
     fetchOpenLLM(map, errors),
     fetchArenaHard(map, errors),
     fetchBigCodeBench(map, errors),
   ]);
 
-  // Fetch popularity sau khi đã có danh sách model
+  // Fetch popularity
   await fetchPopularity(map, errors);
 
-  // Upsert vào DB
+  // Upsert vào DB theo batch 20 để tối ưu network latency
+  const allModels = Array.from(map.values()).filter((m) => m.modelName);
   let modelsUpdated = 0;
-  for (const [, model] of map) {
-    if (!model.modelName) continue;
-    try {
-      await prisma.model.upsert({
-        where: { modelName: model.modelName },
-        update: {
-          source: model.source ?? undefined,
-          reasoningScore: model.reasoningScore ?? undefined,
-          mathScore: model.mathScore ?? undefined,
-          codingScore: model.codingScore ?? undefined,
-          arenaScore: model.arenaScore ?? undefined,
-          popularityDownloads: model.popularityDownloads ?? undefined,
-          popularityLikes: model.popularityLikes ?? undefined,
-        },
-        create: {
-          modelName: model.modelName,
-          source: model.source ?? null,
-          reasoningScore: model.reasoningScore ?? null,
-          mathScore: model.mathScore ?? null,
-          codingScore: model.codingScore ?? null,
-          arenaScore: model.arenaScore ?? null,
-          popularityDownloads: model.popularityDownloads ?? null,
-          popularityLikes: model.popularityLikes ?? null,
-        },
-      });
-      modelsUpdated++;
-    } catch (err) {
-      errors.push(`Upsert failed for ${model.modelName}: ${(err as Error).message}`);
-    }
+  const chunkSize = 20;
+
+  for (let i = 0; i < allModels.length; i += chunkSize) {
+    const chunk = allModels.slice(i, i + chunkSize);
+    await Promise.allSettled(
+      chunk.map(async (model) => {
+        try {
+          await prisma.model.upsert({
+            where: { modelName: model.modelName },
+            update: {
+              source: model.source ?? undefined,
+              reasoningScore: model.reasoningScore ?? undefined,
+              mathScore: model.mathScore ?? undefined,
+              codingScore: model.codingScore ?? undefined,
+              arenaScore: model.arenaScore ?? undefined,
+              popularityDownloads: model.popularityDownloads ?? undefined,
+              popularityLikes: model.popularityLikes ?? undefined,
+            },
+            create: {
+              modelName: model.modelName,
+              source: model.source ?? null,
+              reasoningScore: model.reasoningScore ?? null,
+              mathScore: model.mathScore ?? null,
+              codingScore: model.codingScore ?? null,
+              arenaScore: model.arenaScore ?? null,
+              popularityDownloads: model.popularityDownloads ?? null,
+              popularityLikes: model.popularityLikes ?? null,
+            },
+          });
+          modelsUpdated++;
+        } catch (err) {
+          errors.push(`Upsert failed for ${model.modelName}: ${(err as Error).message}`);
+        }
+      })
+    );
   }
 
   console.log(`[sync-leaderboard] Done: ${modelsUpdated} models updated, ${errors.length} errors`);

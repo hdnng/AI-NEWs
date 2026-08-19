@@ -1,225 +1,71 @@
-# AI Pulse v2
+# 🌐 AI PULSE — Real-time AI News & Multi-Criteria Leaderboard
 
-Web tổng hợp tin tức AI theo thời gian thực + bảng xếp hạng mô hình AI theo nhiều tiêu chí.
-
-Xây bằng **Next.js 14** (App Router, TypeScript) + **Postgres** (Neon/Supabase) + **Prisma ORM**. Dữ liệu được sync tự động qua Vercel Cron Jobs — người dùng chỉ vào xem, không cần bấm refresh.
+**AI Pulse** là nền tảng trực tuyến chuyên biệt giúp theo dõi nhịp đập của thế giới trí tuệ nhân tạo (AI). Dự án kết hợp hai tính năng cốt lõi: **Tổng hợp tin tức AI thời gian thực** và **Bảng xếp hạng mô hình AI chuyên sâu theo từng tiêu chí riêng biệt**.
 
 ---
 
-## Kiến trúc
+## ✨ Tính Năng Nổi Bật
+
+### 1. 📊 Bảng Xếp Hạng Mô Hình AI Đa Tiêu Chí (`/leaderboard`)
+Không đánh giá mô hình AI một cách chung chung, AI Pulse cho phép phân tích và so sánh chi tiết điểm mạnh/yếu của từng mô hình theo 6 tiêu chí độc lập:
+
+- 🧠 **Suy luận (Reasoning):** Tổng hợp từ các bộ chuẩn kiểm thử chuyên sâu (GPQA, MMLU-PRO, BBH).
+- 📐 **Toán học (Math):** Đánh giá năng lực giải toán nâng cao qua benchmark MATH Level 5.
+- 💻 **Lập trình (Coding):** Đo lường khả năng sinh mã và giải thuật thực tế (BigCodeBench).
+- ⚔️ **Đấu trường Arena (Human & Auto Evals):** Đánh giá qua bộ benchmark Arena Hard Auto dựa trên dữ liệu đấu mù thực tế.
+- 📥 **Lượt tải (Downloads):** Đo lường mức độ ứng dụng thực tế trong cộng đồng nguồn mở.
+- ❤️ **Độ yêu thích (Likes):** Thể hiện sự tín nhiệm của cộng đồng lập trình viên và nhà nghiên cứu.
+
+> 💡 *Mỗi cột điểm đều có thông tin nguồn dữ liệu minh bạch, phân biệt rõ ràng giữa mô hình nguồn mở và mô hình đóng thương mại (GPT-4o, Claude 3.5, Gemini...).*
+
+---
+
+### 2. 📰 Tổng Hợp Tin Tức AI Nhanh Chóng & Uy Tín (`/news`)
+- **Tập hợp nguồn tin hàng đầu:** Tự động gom tin tức từ blog chính thức của các hãng AI (OpenAI, Google AI), báo công nghệ lớn (TechCrunch, VentureBeat) và các nghiên cứu khoa học mới nhất từ **arXiv CS.AI**.
+- **Tóm tắt ngắn gọn:** Trích xuất phần cốt lõi của bài viết, kèm liên kết dẫn thẳng về bài gốc để tôn trọng bản quyền tác giả.
+- **Trải nghiệm tức thì:** Tự động nhận diện bài viết mới dưới 15 phút, hỗ trợ lọc theo từng nguồn phát hành và phân trang mượt mà.
+
+---
+
+## 🏛️ Kiến Trúc & Cơ Chế Vận Hành
+
+AI Pulse được xây dựng theo mô hình **Decoupled Sync Architecture (Tách biệt tác vụ đồng bộ và hiển thị)**:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Vercel Cron Jobs                      │
-│  sync-leaderboard (mỗi 6h)   sync-news (mỗi 1h)       │
+│              Background Sync Jobs (Cron)                │
+│  Tự động thu thập dữ liệu từ các nguồn định kỳ theo lịch│
 └────────┬────────────────────────────────┬───────────────┘
          │                                │
          ▼                                ▼
-┌────────────────┐    ┌──────────────────────────────────┐
-│ 4 nguồn dữ liệu│    │ 5 nguồn RSS                      │
-│ • Open LLM     │    │ • OpenAI  • Google AI             │
-│ • Arena Hard   │    │ • TechCrunch AI  • VentureBeat AI │
-│ • BigCodeBench │    │ • arXiv CS.AI                     │
-│ • HF Hub API   │    │                                   │
-└────────┬────────┘    └──────────────┬───────────────────┘
-         │                           │
-         ▼                           ▼
-┌──────────────────────────────────────────────┐
-│          Neon Postgres Database               │
-│     bảng "models"     bảng "articles"        │
-└─────────┬─────────────────────┬──────────────┘
-          │                     │
-          ▼                     ▼
-┌──────────────┐    ┌──────────────────┐
-│ /leaderboard │    │     /news        │
-│ (ISR 5 phút) │    │ (ISR 2 phút)    │
-│ Tabs, sort,  │    │ Filter source,  │
-│ tooltip nguồn│    │ phân trang, poll │
-└──────────────┘    └──────────────────┘
+┌─────────────────────────┐    ┌──────────────────────────┐
+│  4 Nguồn Benchmark & Hub│    │    5 Kênh RSS & arXiv    │
+└────────┬────────────────┘    └──────────┬───────────────┘
+         │                                │
+         ▼                                ▼
+┌─────────────────────────────────────────────────────────┐
+│                 Postgres Database (Neon)                │
+│  Lưu trữ dữ liệu tập trung, đã chuẩn hóa và loại trùng  │
+└────────────────────────────┬────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────┐
+│                     Frontend (ISR)                      │
+│  Người dùng truy cập xem ngay lập tức, siêu nhanh,      │
+│  không phải chờ gọi API ngoài tại thời điểm load trang  │
+└─────────────────────────────────────────────────────────┘
 ```
+
+- **Tự động hóa hoàn toàn:** Hệ thống tự động làm mới dữ liệu theo lịch trình nền, người dùng chỉ cần vào xem mà không cần thao tác tải lại trang.
+- **Độ ổn định cao:** Mỗi nguồn thu thập đều có cơ chế timeout và xử lý lỗi độc lập; sự cố từ một nguồn ngoài không bao giờ làm ảnh hưởng đến toàn bộ hệ thống hay làm gián đoạn trải nghiệm người dùng.
 
 ---
 
-## Cách setup
+## 🛠️ Công Nghệ Sử Dụng
 
-### 1. Clone & cài dependencies
-
-```bash
-git clone <repo-url>
-cd AInews
-npm install
-```
-
-### 2. Tạo database Postgres
-
-**Cách nhanh nhất: dùng Neon (miễn phí)**
-
-1. Vào [neon.tech](https://neon.tech) → Sign up → Create Project
-2. Copy **connection string** (dạng `postgresql://user:pass@host/dbname?sslmode=require`)
-
-**Hoặc dùng Supabase:**
-
-1. Vào [supabase.com](https://supabase.com) → New Project
-2. Vào Settings → Database → Connection string (URI)
-
-### 3. Cấu hình biến môi trường
-
-```bash
-cp .env.example .env
-```
-
-Sửa file `.env`:
-
-```env
-# Paste connection string từ bước 2
-DATABASE_URL="postgresql://user:password@host:5432/dbname?sslmode=require"
-
-# Tự đặt chuỗi bí mật bất kỳ (bảo vệ cron jobs khỏi bị gọi trái phép)
-CRON_SECRET="chuoi-bi-mat-cua-ban-123"
-```
-
-### 4. Khởi tạo database
-
-```bash
-# Tạo bảng trong database
-npx prisma db push
-
-# (Tùy chọn) Mở Prisma Studio để xem dữ liệu trực quan
-npx prisma studio
-```
-
-### 5. Chạy local
-
-```bash
-npm run dev
-```
-
-Mở http://localhost:3000
-
-### 6. Chạy sync thủ công (lần đầu)
-
-Vì cron chưa chạy, database trống. Gọi API sync thủ công:
-
-```bash
-# Sync leaderboard
-curl -H "Authorization: Bearer chuoi-bi-mat-cua-ban-123" http://localhost:3000/api/cron/sync-leaderboard
-
-# Sync tin tức
-curl -H "Authorization: Bearer chuoi-bi-mat-cua-ban-123" http://localhost:3000/api/cron/sync-news
-```
-
-Sau khi chạy xong, reload trang để thấy dữ liệu.
-
----
-
-## Deploy lên Vercel
-
-1. Push code lên GitHub
-2. Vào [vercel.com](https://vercel.com) → Add New Project → chọn repo
-3. Thêm **Environment Variables** trong Vercel dashboard:
-   - `DATABASE_URL` = connection string Neon/Supabase
-   - `CRON_SECRET` = chuỗi bí mật bạn đã đặt
-4. Deploy!
-
-### Cấu hình Vercel Cron
-
-File `vercel.json` đã cấu hình sẵn 2 cron jobs:
-
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/sync-leaderboard",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron/sync-news",
-      "schedule": "0 * * * *"
-    }
-  ]
-}
-```
-
-- **sync-leaderboard**: chạy mỗi 6 giờ (0h, 6h, 12h, 18h UTC)
-- **sync-news**: chạy mỗi 1 giờ
-
-> **Lưu ý:** Vercel Cron tự động thêm header `Authorization: Bearer <CRON_SECRET>` khi gọi. Hãy đảm bảo biến `CRON_SECRET` đã được thêm vào Environment Variables trên Vercel dashboard.
-
----
-
-## Cấu trúc thư mục
-
-```
-app/
-  layout.tsx                         Layout + fonts + Nav
-  page.tsx                           Redirect → /news
-  news/
-    page.tsx                         Trang tin tức (ISR 2 phút, đọc DB)
-    loading.tsx                      Loading skeleton
-    error.tsx                        Error boundary
-  leaderboard/
-    page.tsx                         Trang xếp hạng (ISR 5 phút, đọc DB)
-    loading.tsx                      Loading skeleton
-    error.tsx                        Error boundary
-  api/
-    cron/
-      sync-leaderboard/route.ts      Cron job: fetch 4 nguồn → merge → DB
-      sync-news/route.ts             Cron job: fetch RSS → DB
-    leaderboard/route.ts             Public API: đọc models từ DB
-    news/route.ts                    Public API: đọc articles từ DB
-
-components/
-  Nav.tsx                            Thanh điều hướng
-  LeaderboardTabs.tsx                Tabs xếp hạng + tooltip nguồn
-  NewsCard.tsx                       Thẻ 1 tin
-  NewsFeed.tsx                       Danh sách tin + filter + phân trang
-  Skeleton.tsx                       Loading skeletons
-
-lib/
-  db.ts                              Prisma client singleton
-  sync-leaderboard.ts                Logic fetch 4 nguồn + merge + upsert
-  sync-news.ts                       Logic fetch RSS + upsert
-  rss-sources.ts                     Danh sách nguồn RSS
-  time.ts                            Tiện ích "x phút trước" + format số
-
-prisma/
-  schema.prisma                      Schema DB: models + articles
-```
-
----
-
-## Nguồn dữ liệu
-
-### Bảng xếp hạng (Leaderboard)
-
-| Tiêu chí | Nguồn | Cập nhật |
-|-----------|-------|----------|
-| Suy luận (Reasoning) | Open LLM Leaderboard (GPQA, MMLU-PRO, BBH) | Mỗi 6h |
-| Toán học (Math) | Open LLM Leaderboard (MATH Lvl 5) | Mỗi 6h |
-| Lập trình (Coding) | BigCodeBench (complete + instruct) | Mỗi 6h |
-| Arena | Arena Hard Auto v0.1 CSV | Mỗi 6h (snapshot tĩnh 2024-07-31) |
-| Popularity | Hugging Face Hub API (downloads, likes) | Mỗi 6h |
-
-> ⚠️ **Arena Hard** là snapshot tĩnh chốt ngày 2024-07-31, không phải Elo realtime. UI đã hiển thị rõ thông tin này.
->
-> ⚠️ **Popularity** chỉ áp dụng cho model có trên HF Hub. Model đóng (GPT-4o, Claude, Gemini) hiển thị "N/A".
-
-### Tin tức (News)
-
-| Nguồn | URL |
-|-------|-----|
-| OpenAI | openai.com/news/rss.xml |
-| Google AI | blog.google/technology/ai/rss/ |
-| TechCrunch AI | techcrunch.com/category/artificial-intelligence/feed/ |
-| VentureBeat AI | venturebeat.com/category/ai/feed/ |
-| arXiv CS.AI | export.arxiv.org/api/query (Atom) |
-
----
-
-## Xử lý lỗi
-
-- Mỗi nguồn dữ liệu được wrap trong `try/catch` riêng — 1 nguồn lỗi không làm crash toàn bộ job
-- Fetch có timeout (15s cho leaderboard, 15s cho RSS) — không treo vô hạn
-- Nếu API ngoài fail/timeout: dữ liệu cũ trong DB giữ nguyên, log lỗi
-- Frontend có error boundary + retry button cho cả 2 trang
-- Cron jobs được bảo vệ bằng `CRON_SECRET` — không thể gọi trái phép
+- **Framework:** [Next.js 14](https://nextjs.org/) (App Router, Server Components, ISR)
+- **Ngôn ngữ:** [TypeScript](https://www.typescriptlang.org/) (Strict Mode)
+- **Cơ sở dữ liệu:** [PostgreSQL](https://www.postgresql.org/) (Neon Serverless Postgres)
+- **ORM:** [Prisma](https://www.prisma.io/)
+- **Giao diện & Thiết kế:** [Tailwind CSS](https://tailwindcss.com/) — Phong cách **Dark Cyberpunk / Terminal**, tối ưu typography với Google Fonts (*Space Grotesk*, *Inter*, *JetBrains Mono*).
+- **Phân tích dữ liệu:** `papaparse` (CSV Parser), `rss-parser` (RSS/Atom Feed Parser).
