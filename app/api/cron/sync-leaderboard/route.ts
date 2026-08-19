@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { syncLeaderboard } from "@/lib/sync-leaderboard";
 
+export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Vercel: tối đa 60s cho job này
 
 export async function GET(request: Request) {
