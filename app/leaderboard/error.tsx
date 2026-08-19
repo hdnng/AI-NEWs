@@ -1,5 +1,7 @@
 "use client";
 
+import { RefreshCwIcon } from "@/components/Icons";
+
 export default function Error({
   error,
   reset,
@@ -8,10 +10,10 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="rounded-full bg-rose/10 p-4">
+    <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-3xl border border-rose/20 bg-surface/50 p-8 text-center backdrop-blur shadow-card">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose/10 border border-rose/30 text-rose">
         <svg
-          className="h-8 w-8 text-rose"
+          className="h-8 w-8"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -24,17 +26,21 @@ export default function Error({
           />
         </svg>
       </div>
-      <h2 className="mt-4 font-display text-xl font-bold text-ink">
-        Không thể tải bảng xếp hạng
+
+      <h2 className="mt-5 font-display text-2xl font-bold text-ink">
+        Không thể tải bảng xếp hạng AI
       </h2>
+
       <p className="mt-2 max-w-md text-sm text-muted">
-        {error.message || "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại."}
+        {error.message || "Đã xảy ra sự cố khi tải dữ liệu bảng xếp hạng. Vui lòng thử tải lại."}
       </p>
+
       <button
         onClick={reset}
-        className="mt-6 rounded-full bg-surface2 px-6 py-2 font-mono text-xs uppercase tracking-wider text-pulse transition-colors hover:bg-pulse/20"
+        className="mt-6 flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber to-rose px-6 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-base transition-all hover:opacity-90 hover:shadow-glow-amber"
       >
-        Thử lại
+        <RefreshCwIcon className="w-3.5 h-3.5" />
+        <span>Thử lại</span>
       </button>
     </div>
   );

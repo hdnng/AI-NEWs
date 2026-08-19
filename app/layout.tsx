@@ -1,10 +1,12 @@
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
+import Footer from "@/components/Footer";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const display = Space_Grotesk({
   subsets: ["latin"],
-  weight: ["500", "700"],
+  weight: ["500", "600", "700"],
   variable: "--font-display",
 });
 
@@ -16,14 +18,14 @@ const body = Inter({
 
 const mono = JetBrains_Mono({
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600"],
   variable: "--font-mono",
 });
 
 export const metadata = {
-  title: "AI Pulse — Tin tức & Xếp hạng AI theo thời gian thực",
+  title: "AI Pulse — Cập nhật Tin tức & Bảng xếp hạng AI thời gian thực",
   description:
-    "Tổng hợp tin tức AI mới nhất từ nhiều nguồn và bảng xếp hạng mô hình AI theo từng tiêu chí, cập nhật liên tục.",
+    "Tổng hợp tin tức AI mới nhất từ OpenAI, Google, arXiv... và bảng so sánh xếp hạng mô hình AI toàn diện.",
 };
 
 export default function RootLayout({
@@ -34,11 +36,24 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
+      suppressHydrationWarning
       className={`${display.variable} ${body.variable} ${mono.variable}`}
     >
-      <body className="min-h-screen bg-base">
-        <Nav />
-        <main className="mx-auto max-w-5xl px-5 pb-24">{children}</main>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('ai-pulse-theme');if(!t){t='dark';}document.documentElement.classList.toggle('dark',t==='dark');}catch(e){document.documentElement.classList.add('dark');}})();`,
+          }}
+        />
+      </head>
+      <body className="min-h-screen bg-base text-ink flex flex-col justify-between selection:bg-accent/25 selection:text-accentLight">
+        <ThemeProvider>
+          <div>
+            <Nav />
+            <main className="mx-auto max-w-6xl px-4 sm:px-6 pt-6 pb-20">{children}</main>
+          </div>
+          <Footer />
+        </ThemeProvider>
       </body>
     </html>
   );
